@@ -6,7 +6,6 @@ using Xunit;
 
 namespace Alura.LeilaoOnline.Tests
 {
-
     public class LeilaoTerminaPregao
     {
         [Theory]
@@ -16,7 +15,8 @@ namespace Alura.LeilaoOnline.Tests
         public void RetornaMaiorValorComPeloMenosUmLance(double esperado, double[] ofertas)
         {
             //Arrange
-            var leilao = new Leilao("Van Gogh");
+            IModalidadeAvaliacao modalidade = new MaiorValor();
+            var leilao = new Leilao("Van Gogh", modalidade);
             var fulano = new Interessada("Fulano", leilao);
             var maria = new Interessada("Maria", leilao);
 
@@ -43,13 +43,42 @@ namespace Alura.LeilaoOnline.Tests
             //Verificar(valorEsperado, valorObtido);
             Assert.Equal(esperado, valorObtido);
         }
-        
+        [Theory]
+        [InlineData(1200, 1250, new double[] { 800,1000,1250, 1400})]
+        public void RetornaValorMaisProximoDadoLeilaoNestaModalidade(double valorDestino, double valorEsperado, double[] ofertas)
+        {
+            //Arrange
+            IModalidadeAvaliacao modalidade = new OfertaSuperiorMaisProxima(valorDestino);
+            var leilao = new Leilao("Van Gogh", modalidade);
+            var fulano = new Interessada("Fulano", leilao);
+            var maria = new Interessada("Maria", leilao);
+
+            leilao.IniciaPregao();
+            for (int i = 0; i < ofertas.Length; i++)
+            {
+                if ((i % 2 == 0))
+                {
+                    leilao.RecebeLance(fulano, ofertas[i]);
+                }
+                else
+                {
+                    leilao.RecebeLance(maria, ofertas[i]);
+                }
+            }
+            //Act
+            leilao.TerminaPregao();
+
+            //Assert
+            Assert.Equal(valorEsperado, leilao.Ganhador.Valor);
+        }
         [Fact]
         public void RetornaZeroDadoLeilaoSemLances()
         {
             //Arrange
-            var leilao = new Leilao("Van Gogh");
-    
+            IModalidadeAvaliacao modalidade = new MaiorValor();
+            var leilao = new Leilao("Van Gogh", modalidade );
+            leilao.IniciaPregao();
+
             //Act
             leilao.TerminaPregao();
 
@@ -59,6 +88,20 @@ namespace Alura.LeilaoOnline.Tests
 
             //Verificar(valorEsperado, valorObtido);
             Assert.Equal(valorEsperado, valorObtido);
+        }
+
+        [Fact]
+        public void LancaInvalidOperationExceptionDadoPregaoNaoIniciado()
+        {
+            //Arrange
+            IModalidadeAvaliacao modalidade = new MaiorValor();
+            var leilao = new Leilao("Van Gogh", modalidade);
+
+            //Assert
+            Exception excecaoCapturada = Assert.Throws<InvalidOperationException>( 
+                //Act
+                () => leilao.TerminaPregao()
+                );
         }
     }
 }
